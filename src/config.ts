@@ -7,7 +7,7 @@ const HOSTNAME = typeof window !== 'undefined' ? window.location.hostname : '127
 export const APP_CONFIG = {
   IS_OFFLINE: false,
   PB_URL: `http://${HOSTNAME}:8090`, 
-  API_URL: `http://${HOSTNAME}:3001`,
+  API_URL: `http://${HOSTNAME}`,
   DEFAULT_LOCAL_USER: 'local@digit.ae',
   DEFAULT_LOCAL_PASS: '12345678'
 };
