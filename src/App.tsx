@@ -2,16 +2,14 @@ import './index.css'
 import TypingEngine from './components/TypingEngine'
 import AuthScreen from './components/AuthScreen'
 import ProfileSelection from './components/ProfileSelection'
-import { useAuthStore } from './store/useAuthStore'
 import { useUserStore } from './store/useUserStore'
 import { APP_CONFIG } from './config'
 
 function App() {
-  const { currentAccount } = useAuthStore();
   const { currentUser, selectedProfile } = useUserStore();
 
-  // No modo offline (.exe), pulamos a tela de login inicial
-  if (!APP_CONFIG.IS_OFFLINE && !currentAccount) {
+  // Se não estiver logado no PocketBase, mostra a tela de login
+  if (!APP_CONFIG.IS_OFFLINE && !currentUser) {
     return <AuthScreen />;
   }
 
