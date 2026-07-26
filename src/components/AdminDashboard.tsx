@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore, type Fase, type Licao } from '../store/useUserStore';
-import { ChevronLeft, Plus, Edit3, Trash2, ShieldCheck, Layers, BookOpen, Check, X, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Plus, Edit3, Trash2, ShieldCheck, Layers, BookOpen, X, AlertCircle } from 'lucide-react';
 
 interface AdminDashboardProps {
   onBack: () => void;

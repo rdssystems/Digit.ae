@@ -1,7 +1,7 @@
 import React, {
   useState, useEffect, useRef, useCallback, useMemo
 } from 'react';
-import { useUserStore, type Fase, type Licao } from '../store/useUserStore';
+import { useUserStore } from '../store/useUserStore';
 import { LogOut, User as UserIcon, Volume2, VolumeX, Maximize2, Minimize2, ShieldCheck } from 'lucide-react';
 import { useAppSounds } from '../hooks/useAppSounds';
 
@@ -112,7 +112,7 @@ function flatten(linhas: string[]): string {
 
 // ─── COMPONENTE PRINCIPAL ────────────────────────────────────────────────────
 const TypingEngine: React.FC = () => {
-  const { selectedProfile, logout, updateProgress, updateConfig, selectProfile } = useUserStore();
+  const { currentUser, selectedProfile, logout, updateProgress, updateConfig, selectProfile } = useUserStore();
   const { playKey, playError, playStart, playSuccess, playFailure } = useAppSounds();
   
   // Helpers para lidar com dados do Pocketbase que podem vir stringificados
