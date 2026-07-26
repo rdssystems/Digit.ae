@@ -74,7 +74,7 @@ const S = {
 };
 
 const ProfileSelection: React.FC = () => {
-  const { currentUser, login, createProfile, selectProfile } = useUserStore();
+  const { currentUser, login, createProfile, selectProfile, profiles } = useUserStore();
   const [view, setView] = useState<'list' | 'login' | 'register'>('list');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,8 +87,6 @@ const ProfileSelection: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  
-  const profiles = currentUser?.profiles ? (typeof currentUser.profiles === 'string' ? JSON.parse(currentUser.profiles) : currentUser.profiles) : [];
 
   // Se o usuário já estiver logado na conta PB, mostra a lista, senão mostra login
   useEffect(() => {
@@ -117,6 +115,9 @@ const ProfileSelection: React.FC = () => {
           name: 'Usuário Local'
         });
         await login(APP_CONFIG.DEFAULT_LOCAL_USER, APP_CONFIG.DEFAULT_LOCAL_PASS);
+        if (profiles.length === 0) {
+          await createProfile('Usuário Local', 130, 80);
+        }
       } catch (e) {
         setError('Erro ao iniciar banco de dados local.');
       }
@@ -165,9 +166,11 @@ const ProfileSelection: React.FC = () => {
     }
   };
 
-  const handleVerifyPassword = (e: React.FormEvent) => {
+  const handleVerifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    const isCorrect = useUserStore.getState().verifyProfilePassword(targetProfile.id, verifyPassword);
+    setLoading(true);
+    const isCorrect = await useUserStore.getState().verifyProfilePassword(targetProfile.id, verifyPassword);
+    setLoading(false);
     if (isCorrect) {
       selectProfile(targetProfile.id);
     } else {

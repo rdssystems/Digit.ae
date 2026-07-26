@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import PocketBase from 'pocketbase';
+import { hashPassword } from '../utils/crypto';
 
 import { APP_CONFIG } from '../config';
-// Instância única do Pocketbase (apontando para o IP local para acesso em rede)
 export const pb = new PocketBase(APP_CONFIG.PB_URL);
 
 export interface UserProgress {
@@ -21,32 +21,31 @@ export interface UserConfig {
   soundEnabled: boolean;
 }
 
-// O tipo do usuário agora vem do modelo do Pocketbase
 export interface Profile {
   id: string;
   name: string;
-  password?: string; // Senha opcional do perfil (aluno)
+  password?: string;
   config: UserConfig;
   progress: UserProgress;
   createdAt: number;
 }
 
 interface UserStore {
-  currentUser: any | null; // A conta logada no PocketBase
-  selectedProfile: Profile | null; // O aluno selecionado no momento
+  currentUser: any | null;
+  selectedProfile: Profile | null;
+  profiles: Profile[];
   isValid: boolean;
-  
-  // Ações
+
   login: (email: string, pass: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   register: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => void;
-  
-  // Ações de Perfil
+
   selectProfile: (id: string | null) => void;
   createProfile: (name: string, velocidade: number, minAcerto: number, password?: string) => Promise<void>;
-  verifyProfilePassword: (profileId: string, password: string) => boolean;
-  
+  verifyProfilePassword: (profileId: string, password: string) => Promise<boolean>;
+  loadProfiles: () => Promise<void>;
+
   updateProgress: (faseIdx: number, licaoIdx: number, maxUnlocked: number, wpm: number, accuracy: number, lessonKey: string, stars?: number) => Promise<void>;
   updateConfig: (newConfig: Partial<UserConfig>) => Promise<void>;
   refreshAuth: () => void;
@@ -63,55 +62,125 @@ const DEFAULT_PROGRESS: UserProgress = {
   starsByLesson: {},
 };
 
+function backupProfiles(email: string, profiles: Profile[]) {
+  try {
+    localStorage.setItem(`digit_ae_backup_${email}`, JSON.stringify(profiles));
+  } catch {}
+}
+
+function safeParse(val: any, fallback: any) {
+  if (!val) return fallback;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
 export const useUserStore = create<UserStore>((set, get) => ({
   currentUser: pb.authStore.model,
   selectedProfile: null,
+  profiles: [],
   isValid: pb.authStore.isValid,
 
   refreshAuth: () => {
     const model = pb.authStore.model;
     const currentSelected = get().selectedProfile;
-    
-    // Se perdemos a conta, limpamos o perfil
+
     if (!model) {
-      set({ currentUser: null, selectedProfile: null, isValid: false });
+      set({ currentUser: null, selectedProfile: null, profiles: [], isValid: false });
       return;
     }
 
-    // Tenta manter o perfil selecionado atualizado com os dados vindos do banco
-    let updatedProfile = currentSelected;
-    
-    // Recuperação Híbrida: Tentar Banco, se vazio tentar LocalStorage
-    const rawProfiles = model.profiles || [];
-    let profiles = typeof rawProfiles === 'string' ? JSON.parse(rawProfiles) : rawProfiles;
-    
-    // Se o banco estiver vazio, tenta o backup local do navegador
-    if ((!profiles || profiles.length === 0) && model.email) {
-      const backup = localStorage.getItem(`digit_ae_backup_${model.email}`);
+    set({ currentUser: model, isValid: pb.authStore.isValid });
+
+    if (currentSelected) {
+      const updated = get().profiles.find(p => p.id === currentSelected.id) || currentSelected;
+      set({ selectedProfile: updated });
+    }
+  },
+
+  loadProfiles: async () => {
+    const user = get().currentUser;
+    if (!user) { set({ profiles: [] }); return; }
+
+    try {
+      const records = await pb.collection('profiles').getFullList({
+        filter: `user = "${user.id}"`,
+        sort: '-created',
+      });
+
+      if (records.length > 0) {
+        const profiles: Profile[] = records.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          password: r.password || undefined,
+          config: safeParse(r.config, DEFAULT_CONFIG),
+          progress: safeParse(r.progress, DEFAULT_PROGRESS),
+          createdAt: r.created,
+        }));
+        set({ profiles });
+        backupProfiles(user.email, profiles);
+        return;
+      }
+    } catch {}
+
+    // Fallback: migrar do campo JSON legado (users.profiles) se existir
+    if (user.profiles) {
+      const rawProfiles = typeof user.profiles === 'string' ? JSON.parse(user.profiles) : user.profiles;
+      if (Array.isArray(rawProfiles) && rawProfiles.length > 0) {
+        try {
+          const migrated: Profile[] = [];
+          for (const p of rawProfiles) {
+            const record = await pb.collection('profiles').create({
+              user: user.id,
+              name: p.name || 'Aluno',
+              password: p.password || '',
+              config: p.config || DEFAULT_CONFIG,
+              progress: p.progress || DEFAULT_PROGRESS,
+            });
+            migrated.push({
+              id: record.id,
+              name: record.name,
+              password: record.password || undefined,
+              config: safeParse(record.config, DEFAULT_CONFIG),
+              progress: safeParse(record.progress, DEFAULT_PROGRESS),
+              createdAt: record.created,
+            });
+          }
+          await pb.collection('users').update(user.id, { profiles: [] });
+          pb.authStore.save(pb.authStore.token, pb.authStore.model);
+          set({ profiles: migrated });
+          backupProfiles(user.email, migrated);
+          return;
+        } catch (err) {
+          console.error("Erro ao migrar perfis legados:", err);
+        }
+      }
+    }
+
+    // Fallback: localStorage
+    if (user.email) {
+      const backup = localStorage.getItem(`digit_ae_backup_${user.email}`);
       if (backup) {
-        try { profiles = JSON.parse(backup); } catch {}
+        try {
+          const saved: Profile[] = JSON.parse(backup);
+          set({ profiles: saved.map((p: any) => ({
+            ...p,
+            config: { ...DEFAULT_CONFIG, ...safeParse(p.config, {}) },
+            progress: { ...DEFAULT_PROGRESS, ...safeParse(p.progress, {}) },
+          })) });
+          return;
+        } catch {}
       }
     }
 
-    if (currentSelected && profiles) {
-      updatedProfile = profiles.find((p: Profile) => p.id === currentSelected.id) || null;
-      
-      // Fallback de segurança para não perder o objeto local do estado atual
-      if (!updatedProfile && currentSelected) {
-          updatedProfile = currentSelected;
-      }
-    }
-
-    set({ currentUser: model, selectedProfile: updatedProfile, isValid: pb.authStore.isValid });
+    set({ profiles: [] });
   },
 
   login: async (email, pass) => {
     try {
-      console.log("Tentando login em:", APP_CONFIG.PB_URL);
       await pb.collection('users').authWithPassword(email, pass);
       get().refreshAuth();
+      await get().loadProfiles();
     } catch (err: any) {
-      console.error("Erro de conexão com PocketBase:", err);
       throw new Error(`Erro ao conectar no servidor: ${err.message || 'Verifique se o PocketBase está rodando em ' + APP_CONFIG.PB_URL}`);
     }
   },
@@ -119,32 +188,19 @@ export const useUserStore = create<UserStore>((set, get) => ({
   loginWithGoogle: async () => {
     await pb.collection('users').authWithOAuth2({ provider: 'google' });
     get().refreshAuth();
+    await get().loadProfiles();
   },
 
   register: async (email, pass, name) => {
     try {
-      const firstProfile: Profile = {
-        id: Math.random().toString(36).substring(2, 11),
-        name,
-        config: DEFAULT_CONFIG,
-        progress: DEFAULT_PROGRESS,
-        createdAt: Date.now()
-      };
-
-      const data = {
+      await pb.collection('users').create({
         email,
         password: pass,
         passwordConfirm: pass,
         name,
-        profiles: [firstProfile]
-      };
-      await pb.collection('users').create(data);
+      });
       await get().login(email, pass);
-      
-      // Backup local imediato
-      localStorage.setItem(`digit_ae_backup_${email}`, JSON.stringify([firstProfile]));
-      
-      set({ selectedProfile: firstProfile });
+      await get().createProfile(name, DEFAULT_CONFIG.velocidade, DEFAULT_CONFIG.minAcerto);
     } catch (err: any) {
       alert("Erro ao registrar: " + (err.message || JSON.stringify(err)));
       throw err;
@@ -157,143 +213,112 @@ export const useUserStore = create<UserStore>((set, get) => ({
   },
 
   selectProfile: (id) => {
-    if (!id) {
-      set({ selectedProfile: null });
-      return;
-    }
-    const user = get().currentUser;
-    if (!user) return;
-    
-    const rawProfiles = user.profiles || [];
-    let profiles = typeof rawProfiles === 'string' ? JSON.parse(rawProfiles) : rawProfiles;
-    
-    if ((!profiles || profiles.length === 0) && user.email) {
-       const backup = localStorage.getItem(`digit_ae_backup_${user.email}`);
-       if (backup) profiles = JSON.parse(backup);
-    }
-    
-    const profile = profiles.find((p: Profile) => p.id === id);
+    if (!id) { set({ selectedProfile: null }); return; }
+    const profile = get().profiles.find(p => p.id === id);
     if (profile) set({ selectedProfile: profile });
   },
 
-  verifyProfilePassword: (profileId, password) => {
-    const user = get().currentUser;
-    if (!user) return false;
-    const rawProfiles = user.profiles || [];
-    const profiles = typeof rawProfiles === 'string' ? JSON.parse(rawProfiles) : rawProfiles;
-    const profile = profiles.find((p: Profile) => p.id === profileId);
-    
-    if (!profile) return false;
-    if (!profile.password) return true; // Se não tem senha, entra direto
-    return profile.password === password;
+  verifyProfilePassword: async (profileId, password) => {
+    try {
+      const record = await pb.collection('profiles').getOne(profileId);
+      if (!record.password) return true;
+      const hashed = await hashPassword(password);
+      return record.password === hashed;
+    } catch {
+      return false;
+    }
   },
 
   createProfile: async (name, velocidade, minAcerto, password) => {
-    try {
-      const user = get().currentUser;
-      if (!user) return;
+    const user = get().currentUser;
+    if (!user) return;
 
-      const newProfile: Profile = {
-        id: Math.random().toString(36).substring(2, 11), // Gerador de ID simples compatível com HTTP
+    try {
+      const data: Record<string, any> = {
+        user: user.id,
         name,
-        password: password || undefined,
         config: { ...DEFAULT_CONFIG, velocidade, minAcerto },
         progress: DEFAULT_PROGRESS,
-        createdAt: Date.now()
       };
-
-      const rawProfiles = user.profiles || [];
-      const currentProfiles = (typeof rawProfiles === 'string' ? (rawProfiles ? JSON.parse(rawProfiles) : []) : rawProfiles) || [];
-      const updatedProfiles = [...currentProfiles, newProfile];
-
-      // Backup Local (Antes de tentar o banco)
-      if (user.email) {
-        localStorage.setItem(`digit_ae_backup_${user.email}`, JSON.stringify(updatedProfiles));
+      if (password) {
+        data.password = await hashPassword(password);
       }
 
-      const record = await pb.collection('users').update(user.id, {
-        profiles: updatedProfiles
-      });
+      const record = await pb.collection('profiles').create(data);
 
-      pb.authStore.save(pb.authStore.token, record);
-      set({ currentUser: record, selectedProfile: newProfile });
+      const newProfile: Profile = {
+        id: record.id,
+        name: record.name,
+        password: record.password || undefined,
+        config: safeParse(record.config, DEFAULT_CONFIG),
+        progress: safeParse(record.progress, DEFAULT_PROGRESS),
+        createdAt: record.created,
+      };
+
+      const updatedProfiles = [...get().profiles, newProfile];
+      backupProfiles(user.email, updatedProfiles);
+      set({ profiles: updatedProfiles, selectedProfile: newProfile });
     } catch (err: any) {
-      console.error("Erro detalhado ao criar perfil:", err);
+      console.error("Erro ao criar perfil:", err);
       const msg = err.response?.data?.message || err.message || "Erro desconhecido";
-      alert(`Erro no servidor (${msg}). O perfil foi salvo apenas localmente neste navegador.`);
+      alert(`Erro no servidor (${msg}).`);
     }
   },
 
   updateProgress: async (faseIdx, licaoIdx, maxUnlocked, wpm, accuracy, lessonKey, stars) => {
+    const user = get().currentUser;
+    const profile = get().selectedProfile;
+    if (!user || !profile) return;
+
+    const currentProgress = profile.progress || DEFAULT_PROGRESS;
+    const currentStarsMap = currentProgress.starsByLesson || {};
+
+    const newStarsMap = { ...currentStarsMap };
+    if (lessonKey && stars !== undefined) {
+      newStarsMap[lessonKey] = Math.max(currentStarsMap[lessonKey] || 0, stars);
+    }
+
+    const updatedProgress: UserProgress = {
+      ...currentProgress,
+      faseIdx, licaoIdx, maxUnlocked,
+      wpm: Math.max(currentProgress.wpm || 0, wpm),
+      accuracy: Math.max(currentProgress.accuracy || 0, accuracy),
+      totalLessonsCompleted: (currentProgress.totalLessonsCompleted || 0) + 1,
+      starsByLesson: newStarsMap,
+    };
+
     try {
-      const user = get().currentUser;
-      const profile = get().selectedProfile;
-      if (!user || !profile) return;
+      await pb.collection('profiles').update(profile.id, { progress: updatedProgress });
 
-      const currentProgress = profile.progress;
-      const currentStarsMap = currentProgress.starsByLesson || {};
-      
-      const newStarsMap = { ...currentStarsMap };
-      if (lessonKey && stars !== undefined) {
-        newStarsMap[lessonKey] = Math.max(currentStarsMap[lessonKey] || 0, stars);
-      }
-
-      const updatedProfile: Profile = {
-        ...profile,
-        progress: {
-          ...currentProgress, faseIdx, licaoIdx, maxUnlocked,
-          wpm: Math.max(currentProgress.wpm, wpm),
-          accuracy: Math.max(currentProgress.accuracy, accuracy),
-          totalLessonsCompleted: (currentProgress.totalLessonsCompleted || 0) + 1,
-          starsByLesson: newStarsMap,
-        }
-      };
-
-      const rawProfiles = user.profiles || [];
-      const profiles = (typeof rawProfiles === 'string' ? JSON.parse(rawProfiles) : rawProfiles) || [];
-      const updatedProfiles = profiles.map((p: Profile) => p.id === profile.id ? updatedProfile : p);
-
-      // Backup Local
-      if (user.email) {
-        localStorage.setItem(`digit_ae_backup_${user.email}`, JSON.stringify(updatedProfiles));
-      }
-
-      const record = await pb.collection('users').update(user.id, {
-        profiles: updatedProfiles
-      });
-
-      pb.authStore.save(pb.authStore.token, record);
-      set({ currentUser: record, selectedProfile: updatedProfile });
-    } catch (err: any) {
+      const updatedProfile: Profile = { ...profile, progress: updatedProgress };
+      const updatedProfiles = get().profiles.map(p => p.id === profile.id ? updatedProfile : p);
+      backupProfiles(user.email, updatedProfiles);
+      set({ selectedProfile: updatedProfile, profiles: updatedProfiles });
+    } catch (err) {
       console.error("Erro no auto-save:", err);
     }
   },
 
   updateConfig: async (newConfig) => {
+    const user = get().currentUser;
+    const profile = get().selectedProfile;
+    if (!user || !profile) return;
+
+    const updatedConfig: UserConfig = { ...profile.config, ...newConfig };
+
     try {
-      const user = get().currentUser;
-      const profile = get().selectedProfile;
-      if (!user || !profile) return;
+      await pb.collection('profiles').update(profile.id, { config: updatedConfig });
 
-      const updatedProfile: Profile = { ...profile, config: { ...profile.config, ...newConfig } };
-      const rawProfiles = user.profiles || [];
-      const profiles = typeof rawProfiles === 'string' ? JSON.parse(rawProfiles) : rawProfiles;
-      const updatedProfiles = profiles.map((p: Profile) => p.id === profile.id ? updatedProfile : p);
-
-      if (user.email) {
-        localStorage.setItem(`digit_ae_backup_${user.email}`, JSON.stringify(updatedProfiles));
-      }
-
-      const record = await pb.collection('users').update(user.id, { profiles: updatedProfiles });
-      pb.authStore.save(pb.authStore.token, record);
-      set({ currentUser: record, selectedProfile: updatedProfile });
-    } catch (err: any) {
+      const updatedProfile: Profile = { ...profile, config: updatedConfig };
+      const updatedProfiles = get().profiles.map(p => p.id === profile.id ? updatedProfile : p);
+      backupProfiles(user.email, updatedProfiles);
+      set({ selectedProfile: updatedProfile, profiles: updatedProfiles });
+    } catch (err) {
       console.error("Erro ao salvar config:", err);
     }
   },
 }));
 
 pb.authStore.onChange(() => {
-    useUserStore.getState().refreshAuth();
+  useUserStore.getState().refreshAuth();
 });
-

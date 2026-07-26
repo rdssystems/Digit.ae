@@ -2,7 +2,7 @@ import React, {
   useState, useEffect, useRef, useCallback, useMemo
 } from 'react';
 import { useUserStore } from '../store/useUserStore';
-import { LogOut, User as UserIcon, Volume2, VolumeX } from 'lucide-react';
+import { LogOut, User as UserIcon, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { useAppSounds } from '../hooks/useAppSounds';
 
 const MSG_APROVADO = [
@@ -83,6 +83,20 @@ interface Fase {
 const TEXTO_MODULO_3 = "o rato preto roeu a rede. a porta da sala de estar esta aberta. paula pediu aquele prato de peixe frito. hoje o dia esta legal para caminhar perto do lago. o poeta escreve o texto direto no papel. a grafite do lapis quebrou. tudo esta quase pronto para a festa de hoje. o gato pula o muro alto e foge para a rua. jorge quer ler o jornal que esta ali. a pipa subiu alto no ar. falta sorte para aquele jogador de elite. o teclado do computador esta quieto. a ideia era sair cedo para o teatro. agora a luz do sol brilha forte.";
 
 const TEXTO_MODULO_3_DESAFIO = "o café esta quente, mas o pão com mel ja acabou. a vida na cidade exige calma, foco e muita coragem. fiz o exame de vista hoje e tudo parece exato. o juiz deu o prazo final para o processo. talvez a gente possa viajar de navio ou de avião no verão. a caixa de madeira trazia um xale azul e uma foto antiga. o rapaz era muito capaz, mas precisava de mais prática no teclado. marchar no campo exige ritmo e força. a luz do sol brilha na mesa da sala. por favor, feche a porta e traga o jornal agora. o sucesso vem para quem treina com zelo e paciência. o ponto final indica que a lição acabou.";
+
+const TEXTO_MODULO_4 = "o vento soprava forte na varanda da casa amarela. as folhas secas dançavam pelo quintal enquanto o gato observava tudo de cima do muro. dona clara preparava um bolo de fuba para o cafe da tarde e o cheiro se espalhava pela rua inteira. os vizinhos sorriam e acenavam da janela. era um dia simples, daqueles que a gente guarda na memoria sem nem saber por que. a vida tem dessas coisas bonitas e gratuitas que so a rotina revela.";
+
+const TEXTO_MODULO_5 = "havia uma vez um velho relojoeiro que morava no alto da colina. todos os dias, ele subia as escadas de madeira ate sua oficina e se sentava diante de dezenas de relogios antigos, cada um marcando uma hora diferente. ele dizia que o tempo nao existia dentro daquelas paredes, que cada ponteiro girava no seu proprio ritmo, assim como as pessoas. um dia, uma menina entrou na loja e perguntou se ele consertava relogios quebrados. o velho sorriu e respondeu que so consertava aqueles que ainda tinham vontade de funcionar.";
+
+const TEXTO_MODULO_6 = "no dia 15 de Março de 2024, a empresa TechSol Brasil S.A. inaugurou sua nova sede na Av. Paulista, 1500, em São Paulo. o evento contou com 320 convidados e 12 palestrantes internacionais. o CEO Carlos Mendes anunciou a contratação de 50 novos funcionarios e a meta de R$ 10 milhões em faturamento ate Dezembro. foi um marco histórico.";
+
+const TEXTO_MODULO_7 = "prezado(a) Sr(a). Carlos Almeida, agradecemos seu contato (protocolo #4521-2026). conforme solicitado, enviamos o orçamento revisado: Item 1 — R$ 350,00; Item 2 — R$ 890,50; Taxa de serviço (5%) — R$ 62,03; Total = R$ 1.302,53. o pagamento pode ser feito via PIX (chave: financeiro@empresa.com) ou boleto com vencimento em 20/07/2026. duvidas? Ligue: (11) 3456-7890. Atenciosamente, Equipe Comercial.";
+
+const TEXTO_MODULO_8 = "todas as manhas ele saia cedo para andar pelo parque perto de casa. o caminho era simples e tranquilo, com passaros cantando e o sol ainda fraco atras das arvores. ele gostava de sentir o vento no rosto enquanto pensava nas coisas simples da vida. algumas pessoas passavam correndo, outras caminhavam devagar com seus cachorros. tudo era calmo e perfeito.";
+
+const TEXTO_MODULO_9 = "Ilmo. Sr. Diretor de Compras, vimos por meio desta apresentar nossa proposta comercial para fornecimento de materiais de escritorio. nossa empresa atua no mercado desde 2005 e atende mais de 300 clientes corporativos em todo o Brasil. os valores unitarios seguem na tabela anexa, com desconto progressivo a partir de R$ 5.000,00. o prazo de entrega e de ate 7 dias uteis e o pagamento pode ser parcelado em ate 12 vezes. colocamo-nos a disposicao para uma reuniao presencial ou por videochamada. Cordialmente, Equipe Comercial.";
+
+const TEXTO_MODULO_10 = "prezados membros do Conselho Diretor, apresentamos a seguir o relatorio consolidado do 3º trimestre de 2026. a receita liquida atingiu R$ 2.847.300,00 — um crescimento de 18,7% em relacao ao mesmo periodo do ano anterior (R$ 2.400.000,00). os custos operacionais totalizaram R$ 1.120.450,80, resultando em um lucro operacional de R$ 1.726.849,20. destacamos: (1) abertura de 3 novas filiais em Campinas, Curitiba e Belo Horizonte; (2) contratação de 42 colaboradores — sendo 15 para TI e 27 para operacoes; (3) lancamento da plataforma digital (app mobile + web) com investimento de R$ 480.000,00. para o 4º trimestre, a projecao e de R$ 3.100.000,00 em receita. Contatos: diretoria@empresa.com — Tel: (11) 4002-8922.";
 
 const FASES: Fase[] = [
   {
@@ -350,6 +364,426 @@ const FASES: Fase[] = [
         linhas: [TEXTO_MODULO_3_DESAFIO], teclasFoco: [], isScrolling: true,
       }
     ]
+  },
+  {
+    titulo: 'Módulo 4 — Consolidação e Ritmo',
+    descricao: 'Consolidando o teclado inteiro com palavras e frases do dia a dia',
+    licoes: [
+      {
+        id: 1, key: 'm4-l1', titulo: 'Lição 1', subtitulo: 'Palavras Cotidianas (2 a 4 letras)',
+        linhas: [
+          'casa rua sol mar flor lua rio',
+          'porta copo mesa bolo dia noite agua',
+          'fogo vida jogo filme carro verde azul',
+          'amor paz ar luz som cor vez voz'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 2, key: 'm4-l2', titulo: 'Lição 2', subtitulo: 'Frases Curtas do Cotidiano',
+        linhas: [
+          'o sol brilha forte hoje de manha.',
+          'a casa fica perto do rio azul.',
+          'quero um copo de agua bem gelada.',
+          'vou andar de carro ate o centro.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 3, key: 'm4-l3', titulo: 'Lição 3', subtitulo: 'Fonemas e Dígrafos: lh, nh, ch, rr, ss',
+        linhas: [
+          'filho velho palha trilha ilha olho telha',
+          'lenha banho ninho linha sonho unha vinho',
+          'chave chama chuva cheio choro chefe chapa',
+          'carro barro terra guerra serra jarra torre'
+        ],
+        teclasFoco: ['l', 'h', 'n', 'c', 'r', 's'],
+      },
+      {
+        id: 4, key: 'm4-l4', titulo: 'Lição 4', subtitulo: 'Acentuação e Cedilha: o toque brasileiro',
+        linhas: [
+          'café você avó avô pé pá fé chá já',
+          'coração atenção nação feijão avião balão leão',
+          'poção relação canção doação razão função nação',
+          'saúde saída baú açaí país herói ideia rainha'
+        ],
+        teclasFoco: ['´', '~', '^', 'ç'],
+      },
+      {
+        id: 5, key: 'm4-l5', titulo: 'Lição 5', subtitulo: 'Frases de Ritmo Controlado',
+        linhas: [
+          'hoje o café estava muito forte pela manha.',
+          'a menina levou o cachorro para passear no parque.',
+          'amanha vou a feira e depois ao cinema com voce.',
+          'o relogio da sala parou e atrasou todo o jantar.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm4-l6', titulo: 'Desafio de Fluxo', subtitulo: 'Mantenha o ritmo enquanto o texto desliza',
+        linhas: [TEXTO_MODULO_4], teclasFoco: [], isScrolling: true,
+      }
+    ]
+  },
+  {
+    titulo: 'Módulo 5 — Fluência Avançada',
+    descricao: 'Textos, pontuação e expressão escrita com confiança',
+    licoes: [
+      {
+        id: 1, key: 'm5-l1', titulo: 'Lição 1', subtitulo: 'Palavras Técnicas e Científicas',
+        linhas: [
+          'programa sistema digital projeto usuario interface',
+          'tecnologia ciencia biologia geografia historia arte',
+          'economia politica sociedade documento processo relato',
+          'transforme visualize configure automatize organize finalize'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 2, key: 'm5-l2', titulo: 'Lição 2', subtitulo: 'Frases Descritivas: cenas curtas',
+        linhas: [
+          'a lua cheia iluminava o lago calmo da fazenda antiga.',
+          'as crianças corriam alegres atras da pipa colorida no ceu.',
+          'o barco balancava devagar enquanto o pescador jogava a rede.',
+          'a biblioteca silenciosa guardava livros de capa desgastada.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 3, key: 'm5-l3', titulo: 'Lição 3', subtitulo: 'Pontuação e Diálogo: o texto ganha voz',
+        linhas: [
+          '--voce viu o que aconteceu la fora? --perguntou maria.',
+          '--ainda nao! --respondeu joao. --que susto!',
+          '--como ele conseguiu subir naquela arvore?',
+          'o gato miou, o cao latiu e a porta bateu.'
+        ],
+        teclasFoco: ['-', '?', '!', ','],
+      },
+      {
+        id: 4, key: 'm5-l4', titulo: 'Lição 4', subtitulo: 'Frases Longas com Estrutura',
+        linhas: [
+          'o professor explicou que o resultado dependia de varios fatores.',
+          'enquanto a chuva caia, a familia se reunia ao redor da lareira.',
+          'depois de muito esforco, o time conquistou o titulo estadual.',
+          'quando o sol nasceu atras das montanhas, os passaros cantaram.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 5, key: 'm5-l5', titulo: 'Lição 5', subtitulo: 'Parágrafo Integrado',
+        linhas: [
+          'a cidade acordava devagar naquela manha de domingo. o feirante arrumava as frutas na banca com cuidado, enquanto o padeiro tirava os primeiros paes quentes do forno.',
+          'a praca ainda estava vazia e o silencio so era quebrado pelo som distante de um violao. aos poucos, as pessoas chegavam com suas sacolas e sorrisos.',
+          'o pao quentinho e o leite fresco alegravam o cafe da manha daquela familia simples. era gostoso ver a alegria nos olhos das crianças.',
+          'o dia passou tranquilo e a noite chegou com sua brisa fresca. todos se recolheram felizes, gratos por mais um dia de paz e trabalho bem feito.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm5-l6', titulo: 'Desafio de Fluxo', subtitulo: 'Uma pequena crônica para fluência total',
+        linhas: [TEXTO_MODULO_5], teclasFoco: [], isScrolling: true,
+      }
+    ]
+  },
+  {
+    titulo: 'Módulo 6 — Números, Maiúsculas e Shift',
+    descricao: 'A fileira superior com números e o domínio das teclas Shift',
+    licoes: [
+      {
+        id: 1, key: 'm6-l1', titulo: 'Lição 1', subtitulo: 'Números Básicos: a fileira numérica',
+        linhas: [
+          '1 2 3 4 5 6 7 8 9 0 10 20 30 40 50',
+          '60 70 80 90 11 22 33 44 55 66 77 88 99',
+          '100 200 300 400 500 600 700 800 900',
+          '1000 1500 2000 2500 3000 5000 10000'
+        ],
+        teclasFoco: ['1','2','3','4','5','6','7','8','9','0'],
+      },
+      {
+        id: 2, key: 'm6-l2', titulo: 'Lição 2', subtitulo: 'Datas e Telefones: formatos numéricos do dia a dia',
+        linhas: [
+          '12/07/2026 25/12/2000 01/01/1990 15/11/1889',
+          '11987654321 21912345678 31987651234 41998765432',
+          'cep 01234567 87654321 22333444 55666777 88999000',
+          'cpf 12345678901 98765432100 11122233344 55566677788'
+        ],
+        teclasFoco: ['1','2','3','4','5','6','7','8','9','0','/'],
+      },
+      {
+        id: 3, key: 'm6-l3', titulo: 'Lição 3', subtitulo: 'Maiúsculas com Shift: nomes próprios e lugares',
+        linhas: [
+          'Brasil São Paulo Rio Janeiro Curitiba Salvador',
+          'Pedro Maria João Ana Carlos Julia Lucas Beatriz',
+          'Google Apple Microsoft Samsung Netflix Amazon Meta',
+          'Janeiro Fevereiro Março Abril Maio Junho Julho Agosto'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 4, key: 'm6-l4', titulo: 'Lição 4', subtitulo: 'Siglas e Abreviações: alternando Shift com agilidade',
+        linhas: [
+          'ONU USB PDF CEO CFO HTML HTTP URL CPU GPU',
+          'FGTS INSS IPTU IPVA ICMS IRPF PIS PASEP ISS',
+          'km kg cm mm ml m² km/h R$ kW kWh CV HP Ltda',
+          'Dr. Sr. Sra. Prof. Eng. Av. Rua Pça. tel. cel. etc.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 5, key: 'm6-l5', titulo: 'Lição 5', subtitulo: 'Frases com Números e Maiúsculas',
+        linhas: [
+          'Hoje é 13 de Julho de 2026 e faz 25 graus em São Paulo.',
+          'João tem 3 filhos: Ana de 12, Pedro de 8 e Lucas de 5.',
+          'A loja vendeu 150 itens por R$ 2.500,00 no sábado passado.',
+          'O voo AF 447 sai às 22h30 do Aeroporto de Guarulhos.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm6-l6', titulo: 'Desafio de Fluxo', subtitulo: 'Texto com números, datas e nomes próprios',
+        linhas: [TEXTO_MODULO_6], teclasFoco: [], isScrolling: true,
+      }
+    ]
+  },
+  {
+    titulo: 'Módulo 7 — Símbolos e Pontuação Avançada',
+    descricao: 'Arroba, cifrão, parênteses e toda a pontuação especial',
+    licoes: [
+      {
+        id: 1, key: 'm7-l1', titulo: 'Lição 1', subtitulo: 'Símbolos Comuns: @, #, $, %, &, *',
+        linhas: [
+          'email@dominio.com.br vendas@loja.com contato@site.org',
+          'senha#2026! codigo@123 valor$50 imposto%18 extra&',
+          '& associados * obrigatorio (opcional) + extra - desconto',
+          'preco $ 49.90 desconto % 25 total $ 37.43 promocao #2026'
+        ],
+        teclasFoco: ['2','3','4','5','7','8','@','#','$','%','&','*'],
+      },
+      {
+        id: 2, key: 'm7-l2', titulo: 'Lição 2', subtitulo: 'Parênteses, Colchetes e Chaves',
+        linhas: [
+          '(valor + taxa) * 2 total = (a + b) / c resultado final',
+          '[secao 1] [anexo A] [artigo 5] [inciso II] [paragrafo 3]',
+          '{ nome: "Ana", idade: 28, ativo: true, saldo: 1500.00 }',
+          'conteudo = (base * (1 + taxa)) - desconto + adicional'
+        ],
+        teclasFoco: ['(',')','[',']','{','}'],
+      },
+      {
+        id: 3, key: 'm7-l3', titulo: 'Lição 3', subtitulo: 'Aspas, Apóstrofo e Travessão',
+        linhas: [
+          '"bom dia" \'olá\' — como vai? — estou bem hoje!',
+          'a palavra "resiliencia" significa "capacidade de adaptacao".',
+          '— quem e voce? — perguntou Alice. — eu sou o Gato risonho.',
+          'o termo \'feedback\' vem do ingles \'to feed back\' literalmente.'
+        ],
+        teclasFoco: ['"','\'','-'],
+      },
+      {
+        id: 4, key: 'm7-l4', titulo: 'Lição 4', subtitulo: 'E-mails e Formatos Profissionais',
+        linhas: [
+          'ana.silva@empresa.com.br carlos_lima@governo.gov.br',
+          'suporte@tecnologia.net rh@industria.com vendas@loja.com',
+          'n0va-senha!2026 acc3ss0@s3guro b0m_D1a&forte ok!',
+          'nao-responda@banco.com newsletter@portal.org contato@site'
+        ],
+        teclasFoco: ['@','.','_','-','!'],
+      },
+      {
+        id: 5, key: 'm7-l5', titulo: 'Lição 5', subtitulo: 'Textos com Riqueza Gráfica',
+        linhas: [
+          'O carro custava R$ 45.900,00 — um bom preco, eu diria.',
+          'Conforme o artigo 5º (inciso III): "todos sao iguais perante a lei".',
+          'A formula e: resultado = (nota1 + nota2) / 2 * 0,7 = media final.',
+          '— E entao? — perguntou. — Esta feito! — respondi com alegria.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm7-l6', titulo: 'Desafio de Fluxo', subtitulo: 'Texto rico em símbolos e formatação profissional',
+        linhas: [TEXTO_MODULO_7], teclasFoco: [], isScrolling: true,
+      }
+    ]
+  },
+  {
+    titulo: 'Módulo 8 — Velocidade com Bigramas e Trigramas',
+    descricao: 'Padrões de alta frequência para acelerar sua digitação',
+    licoes: [
+      {
+        id: 1, key: 'm8-l1', titulo: 'Lição 1', subtitulo: 'Bigramas Frequentes: pares mais comuns',
+        linhas: [
+          'de es ra os ar te en co er as ad to se um no',
+          'dees raos arte enco eras adto esra coar dear sent',
+          'dente resto parte arte contar entrar estado desenho',
+          'daremos entarde rasteira restante destaque contador'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 2, key: 'm8-l2', titulo: 'Lição 2', subtitulo: 'Bigramas Frequentes: mais pares comuns',
+        linhas: [
+          'ta re ma do da se el pa qu no um po ri an ca',
+          'tare mado dase elpa quen oum taen repo rica anca',
+          'tarefa madera demora parade elefante queda relato',
+          'tapete remado damasco elegante pequeno quente rico'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 3, key: 'm8-l3', titulo: 'Lição 3', subtitulo: 'Trigramas Comuns: três letras velozes',
+        linhas: [
+          'ent est men and ado aci com par tra des der ada',
+          'mente estou dando parte muito antes acido comer trazer',
+          'entende resultado parado comando trazido descida mente',
+          'totalmente finalmente parado comendo acidamente trazido'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 4, key: 'm8-l4', titulo: 'Lição 4', subtitulo: 'Palavras Curtas em Rajada',
+        linhas: [
+          'sol mar ar paz luz cor vez som voz lar par dom',
+          'casa mesa bolo fogo rua rio filme jogo vida cor',
+          'verde azul porta copo noite agua carro verde amor',
+          'flor amor dia lua ceu pe cha pa fe maio verao'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 5, key: 'm8-l5', titulo: 'Lição 5', subtitulo: 'Sprints de Velocidade: palavras comuns em sequência',
+        linhas: [
+          'que nao mais muito quando tambem porque depois sobre assim entre',
+          'fazer dizer poder saber falar tirar pedir trazer levar ver',
+          'agora hoje amanha sempre nunca antes tarde cedo logo depois',
+          'grande pequeno melhor pior novo velho bom ruim forte fraco'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm8-l6', titulo: 'Desafio de Fluxo', subtitulo: 'Bigramas e palavras em ritmo acelerado',
+        linhas: [TEXTO_MODULO_8], teclasFoco: [], isScrolling: true,
+      }
+    ]
+  },
+  {
+    titulo: 'Módulo 9 — Textos do Mundo Real',
+    descricao: 'E-mails, currículos, notícias e comunicações profissionais',
+    licoes: [
+      {
+        id: 1, key: 'm9-l1', titulo: 'Lição 1', subtitulo: 'E-mail Profissional: saudação e despedida formal',
+        linhas: [
+          'Prezado Senhor Carlos,',
+          'Segue em anexo o relatorio mensal de vendas conforme solicitado na reuniao de ontem.',
+          'Qualquer duvida, estou a disposicao para esclarecimentos adicionais.',
+          'Atenciosamente, Ana Souza — Gerente de Vendas — Ramal 342'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 2, key: 'm9-l2', titulo: 'Lição 2', subtitulo: 'Currículo e Dados Pessoais',
+        linhas: [
+          'Joao Victor de Lima — Brasileiro, 28 anos, Solteiro',
+          'Formacao: Administracao — Universidade de Sao Paulo — 2020',
+          'Experiencia: Assistente Financeiro — Empresa ABC Ltda — 2021 a 2024',
+          'Idiomas: Ingles avancado, Espanhol intermediario, Frances basico'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 3, key: 'm9-l3', titulo: 'Lição 3', subtitulo: 'Notícia Curta: manchete, lide e corpo',
+        linhas: [
+          'Chuvas fortes atingem o sul e deixam 500 familias desabrigadas',
+          'As fortes chuvas que comecaram na madrugada de segunda causaram alagamentos em 12 bairros da capital.',
+          'A Defesa Civil informou que equipes trabalham para resgatar moradores ilhados e distribuir donativos.',
+          'A previsao e de mais chuva para os proximos dias, e o alerta da Defesa Civil segue ate quinta-feira.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 4, key: 'm9-l4', titulo: 'Lição 4', subtitulo: 'Receita Culinária: instruções passo a passo',
+        linhas: [
+          'Bolo de Cenoura com Cobertura de Chocolate — Ingredientes:',
+          '3 cenouras medias, 4 ovos, 1 xicara de oleo, 2 xicaras de acucar, 2 xicaras de farinha de trigo, 1 colher de fermento.',
+          'Modo de preparo: bata as cenouras, os ovos e o oleo no liquidificador por 3 minutos.',
+          'Em uma tigela, misture a farinha e o acucar, adicione a mistura do liquidificador e o fermento. Asse por 40 minutos.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 5, key: 'm9-l5', titulo: 'Lição 5', subtitulo: 'Mensagem Corporativa: WhatsApp e comunicados',
+        linhas: [
+          'Bom dia, equipe! Lembramos que hoje as 14h teremos nossa reuniao semanal.',
+          'Pauta: resultados de Julho, metas de Agosto e apresentacao do novo colaborador.',
+          'Favor confirmar presenca ate as 12h. O link da videochamada sera enviado por e-mail.',
+          'Obrigado e boa semana a todos! Atenciosamente, Departamento de RH.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm9-l6', titulo: 'Desafio de Fluxo', subtitulo: 'Carta comercial completa',
+        linhas: [TEXTO_MODULO_9], teclasFoco: [], isScrolling: true,
+      }
+    ]
+  },
+  {
+    titulo: 'Módulo 10 — Desafio Final Integrado',
+    descricao: 'Consolidando tudo: números, símbolos, maiúsculas e textos complexos',
+    licoes: [
+      {
+        id: 1, key: 'm10-l1', titulo: 'Lição 1', subtitulo: 'Mix de Estilos: alternando padrões',
+        linhas: [
+          'O boleto nº 47823 no valor de R$ 156,90 vence em 20/08/2026.',
+          'Email: suporte@empresa.com | Tel: (11) 3456-7890 | CEP: 04567-001',
+          'Dr(a). Fernanda — CRM/SP 12345 — atende de 2ª a 6ª, das 8h as 18h.',
+          'Codigo: X9K-42M — valido ate 31/12/2026 — use 1 vez por cliente.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 2, key: 'm10-l2', titulo: 'Lição 2', subtitulo: 'Edital e Documento Legal',
+        linhas: [
+          'EDITAL DE CONVOCACAO Nº 001/2026 — A Comissao Organizadora convoca os candidatos aprovados na primeira fase.',
+          'Art. 5º — O prazo para recurso e de 5 (cinco) dias uteis, contados da publicacao deste edital no Diario Oficial.',
+          'Paragrafo unico: os documentos deverao ser entregues na sede, sito a Rua XV de Novembro, 1400, Sala 302.',
+          'Publique-se e cumpra-se. Sao Paulo, 13 de julho de 2026. Dr. Roberto Alves — Presidente da Comissao.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 3, key: 'm10-l3', titulo: 'Lição 3', subtitulo: 'Tabela e Dados Financeiros',
+        linhas: [
+          'JAN: R$ 2.340,00 | FEV: R$ 3.150,50 | MAR: R$ 1.890,00 | Total Q1: R$ 7.380,50',
+          'Despesas: Aluguel R$ 1.200, Luz R$ 340, Agua R$ 180, Internet R$ 99,90, Folha R$ 4.500,00',
+          'Lucro Liquido: R$ 5.560,60 | Margem: 32% | Crescimento: +12,4% vs. ano anterior',
+          'Projecao Q2: R$ 8.200,00 (base 3 cenarios: conservador, moderado e otimista)'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 4, key: 'm10-l4', titulo: 'Lição 4', subtitulo: 'FAQ e Suporte Técnico',
+        linhas: [
+          '1. Como redefinir minha senha? Acesse Configuracoes > Seguranca > Alterar Senha.',
+          '2. Qual o prazo de entrega? Capital: 3 dias uteis. Interior: ate 7 dias uteis.',
+          '3. Posso cancelar meu pedido? Sim, em ate 24h apos confirmacao, pelo portal ou chat.',
+          '4. Formas de pagamento: Cartao (ate 12x), Boleto (ate 3 dias), PIX (aprovacao instantanea).'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 5, key: 'm10-l5', titulo: 'Lição 5', subtitulo: 'Redação de Opinião: mini artigo argumentativo',
+        linhas: [
+          'A tecnologia transformou profundamente a maneira como nos comunicamos no seculo XXI. Em poucos anos, passamos das cartas manuscritas para mensagens instantaneas que cruzam o planeta',
+          'em fracoes de segundo. Essa revolucao trouxe beneficios inegaveis, como a democratizacao do acesso a informacao e a possibilidade de manter contato com pessoas em qualquer lugar do mundo.',
+          'No entanto, e preciso refletir sobre os impactos dessa hiperconectividade na qualidade das relacoes humanas. O volume excessivo de informacoes pode gerar ansiedade, e a comunicacao superficial',
+          'substitui, muitas vezes, o dialogo profundo. O equilibrio entre o digital e o presencial e, portanto, o grande desafio da nossa geracao. Cabe a nos usar a tecnologia com sabedoria e intencao.'
+        ],
+        teclasFoco: [],
+      },
+      {
+        id: 6, key: 'm10-l6', titulo: 'Desafio Final', subtitulo: 'O grande teste de tudo que voce aprendeu',
+        linhas: [TEXTO_MODULO_10], teclasFoco: [], isScrolling: true,
+      }
+    ]
   }
 ];
 
@@ -444,6 +878,8 @@ const TypingEngine: React.FC = () => {
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [showStartMsg, setShowStartMsg] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false);
   const [tutorialSeen, setTutorialSeen] = useState(false);
   const [m2TutorialSeen, setM2TutorialSeen] = useState(false);
   const [m3TutorialSeen, setM3TutorialSeen] = useState(false);
@@ -471,6 +907,41 @@ const TypingEngine: React.FC = () => {
       setM3TutorialSeen(true);
     }
   }, [selectedProfile, faseIdx, licaoIdx, tutorialSeen, m2TutorialSeen, m3TutorialSeen]);
+
+  // Sincroniza estado de tela cheia e checa prompt inicial
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    const hasPrompted = sessionStorage.getItem('digit_ae_fullscreen_prompted');
+    if (!document.fullscreenElement && !hasPrompted) {
+      const timer = setTimeout(() => {
+        setShowFullscreenPrompt(true);
+      }, 800);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      };
+    }
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Erro ao ativar tela cheia: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.error(`Erro ao sair da tela cheia: ${err.message}`);
+      });
+    }
+  }, []);
 
   // ── Sincronização de fase e lição segura ───────────────────────────────────
   const fase  = FASES[faseIdx] || FASES[0];
@@ -773,9 +1244,11 @@ const TypingEngine: React.FC = () => {
   }, [licaoIdx, fase.licoes.length, faseIdx, config.minAcerto, resetSession, calcAccuracy, maxUnlocked, updateProgress, tpm, starsCalculated]);
 
   const irParaLicao = useCallback((idx: number) => {
-    if (idx < 0 || idx > maxUnlocked) return;
+    if (idx < 0 || idx >= fase.licoes.length) return;
+    const isUnlocked = faseIdx < userProgress.faseIdx || (faseIdx === userProgress.faseIdx && idx <= userProgress.maxUnlocked);
+    if (!isUnlocked) return;
     resetSession(faseIdx, idx);
-  }, [maxUnlocked, faseIdx, resetSession]);
+  }, [faseIdx, resetSession, fase.licoes.length, userProgress.faseIdx, userProgress.maxUnlocked]);
 
   const nextCh  = !finished && cursorPos < chars.length ? chars[cursorPos] : '';
   const nextKey = nextCh === ' ' ? 'SPC' : nextCh.toLowerCase();
@@ -896,8 +1369,8 @@ const TypingEngine: React.FC = () => {
             </span>
             <button 
               onClick={() => resetSession(faseIdx + 1, 0)} 
-              disabled={faseIdx >= FASES.length - 1} 
-              style={{ background: 'transparent', border: 'none', color: faseIdx >= FASES.length - 1 ? 'rgba(255,255,255,0.1)' : '#a78bfa', cursor: faseIdx >= FASES.length - 1 ? 'not-allowed' : 'pointer', fontSize: 16, padding: '0 4px' }}
+              disabled={faseIdx >= FASES.length - 1 || faseIdx >= userProgress.faseIdx} 
+              style={{ background: 'transparent', border: 'none', color: (faseIdx >= FASES.length - 1 || faseIdx >= userProgress.faseIdx) ? 'rgba(255,255,255,0.1)' : '#a78bfa', cursor: (faseIdx >= FASES.length - 1 || faseIdx >= userProgress.faseIdx) ? 'not-allowed' : 'pointer', fontSize: 16, padding: '0 4px' }}
               title="Próximo Módulo"
             >
               →
@@ -910,6 +1383,14 @@ const TypingEngine: React.FC = () => {
             title={config.soundEnabled ? "Mudar para Mudo" : "Ativar Som"}
           >
             {config.soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
+
+          <button 
+            style={{ ...S.iconBtn, color: '#34d399' }} 
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Sair da Tela Cheia (F11)" : "Modo Tela Cheia (F11)"}
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
 
           <button style={{ ...S.iconBtn, color: '#f87171' }} onClick={logout} title="Sair da Conta">
@@ -938,7 +1419,7 @@ const TypingEngine: React.FC = () => {
       <div style={S.licaoBar}>
         {fase.licoes.map((l, li) => {
           const lessonStars = (userProgress.starsByLesson as Record<string, number>)?.[l.key];
-          const isUnlocked = li <= maxUnlocked || lessonStars !== undefined;
+          const isUnlocked = faseIdx < userProgress.faseIdx || (faseIdx === userProgress.faseIdx && li <= userProgress.maxUnlocked);
           
           return (
             <div key={li} style={S.licaoDot(li === licaoIdx, li < licaoIdx)}>
@@ -961,7 +1442,7 @@ const TypingEngine: React.FC = () => {
       </div>
 
       {/* ── CABEÇALHO DA LIÇÃO + NAVEGAÇÃO ──────────────────────────────────── */}
-      <div style={{ width:'100%', maxWidth: 1100, display:'flex', flexDirection:'row',
+      <div style={{ width:'100%', maxWidth: 1400, display:'flex', flexDirection:'row',
         alignItems:'center', justifyContent:'space-between', gap:12 }}>
 
         <button
@@ -986,7 +1467,9 @@ const TypingEngine: React.FC = () => {
         </div>
 
         {(() => {
-          const podeProxima = licaoIdx < maxUnlocked && licaoIdx < fase.licoes.length - 1;
+          const proximoIdx = licaoIdx + 1;
+          const isProximaUnlocked = faseIdx < userProgress.faseIdx || (faseIdx === userProgress.faseIdx && proximoIdx <= userProgress.maxUnlocked);
+          const podeProxima = proximoIdx < fase.licoes.length && isProximaUnlocked;
           return (
             <button
               onClick={() => irParaLicao(licaoIdx + 1)}
@@ -1161,8 +1644,8 @@ const TypingEngine: React.FC = () => {
                     return (
                       <span key={ci} style={{
                         display:'inline-block',
-                        width: ch === ' ' ? 14 : 'auto',
-                        minWidth: ch === ' ' ? 14 : 22,
+                        width: ch === ' ' ? 12 : 'auto',
+                        minWidth: ch === ' ' ? 12 : 20,
                         height: 40,
                         lineHeight:'40px',
                         textAlign:'center',
@@ -1333,41 +1816,41 @@ const TypingEngine: React.FC = () => {
       {showTutorial && (
         <div style={{...S.overlay, position: 'fixed', backdropFilter: 'blur(35px)', background: 'rgba(5,3,15,0.95)', zIndex: 2000 }}>
            <div style={{ 
-             width: '95%', maxWidth: 740, padding: 40, background: 'rgba(15,10,40,0.6)', 
-             border: '1px solid rgba(139,92,246,0.3)', borderRadius: 40, textAlign: 'center',
+             width: '90%', maxWidth: 640, padding: '24px 32px', background: 'rgba(15,10,40,0.6)', 
+             border: '1px solid rgba(139,92,246,0.3)', borderRadius: 32, textAlign: 'center',
              boxShadow: '0 30px 100px rgba(0,0,0,0.8)', animation: 'scaleIn 0.3s ease'
            }}>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
                 {TUTORIAL_SLIDES.map((_, i) => (
                   <div key={i} style={{ 
-                    width: i === tutorialStep ? 40 : 8, height: 8, borderRadius: 4, 
+                    width: i === tutorialStep ? 32 : 8, height: 6, borderRadius: 3, 
                     background: i === tutorialStep ? '#a78bfa' : 'rgba(167,139,250,0.2)',
                     transition: 'all 0.3s'
                   }} />
                 ))}
               </div>
 
-              <div style={{ fontSize: 12, fontWeight: 900, color: '#a78bfa', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: '#a78bfa', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>
                 Passo {tutorialStep + 1} de 3
               </div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', marginBottom: 24, letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 16, letterSpacing: '-0.02em' }}>
                 {TUTORIAL_SLIDES[tutorialStep].title}
               </div>
               
-              <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000', marginBottom: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+              <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000', marginBottom: 16, boxShadow: '0 15px 30px rgba(0,0,0,0.4)' }}>
                  <img 
                    src={TUTORIAL_SLIDES[tutorialStep].img} 
                    alt={TUTORIAL_SLIDES[tutorialStep].title} 
-                   style={{ width: '100%', display: 'block', minHeight: 400, objectFit: 'cover' }} 
+                   style={{ width: '100%', display: 'block', height: 260, objectFit: 'cover' }} 
                  />
-                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 32, background: 'linear-gradient(to top, rgba(0,0,0,0.95), transparent)', fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 1.5 }}>
+                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: 'linear-gradient(to top, rgba(0,0,0,0.95), transparent)', fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 1.4 }}>
                     {TUTORIAL_SLIDES[tutorialStep].description}
                  </div>
               </div>
 
-              <div style={{ padding: 20, borderRadius: 20, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', marginBottom: 40, textAlign: 'left' }}>
-                <div style={{ fontSize: 11, fontWeight: 900, color: '#a78bfa', marginBottom: 6, letterSpacing: '0.1em' }}>DICA DE OURO</div>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+              <div style={{ padding: '12px 20px', borderRadius: 16, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', marginBottom: 24, textAlign: 'left' }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: '#a78bfa', marginBottom: 4, letterSpacing: '0.1em' }}>DICA DE OURO</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
                   {TUTORIAL_SLIDES[tutorialStep].tip}
                 </div>
               </div>
@@ -1375,7 +1858,7 @@ const TypingEngine: React.FC = () => {
               <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
                 {tutorialStep > 0 && (
                   <button 
-                    style={{ ...S.cfgClose, margin: 0, width: 'auto', padding: '16px 32px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                    style={{ ...S.cfgClose, margin: 0, width: 'auto', padding: '10px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
                     onClick={() => setTutorialStep(s => s - 1)}
                   >
                     ANTERIOR
@@ -1384,14 +1867,14 @@ const TypingEngine: React.FC = () => {
 
                 {tutorialStep < TUTORIAL_SLIDES.length - 1 ? (
                   <button 
-                    style={{ ...S.cfgClose, margin: 0, width: 'auto', padding: '16px 64px', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', border: 'none', color: '#fff' }}
+                    style={{ ...S.cfgClose, margin: 0, width: 'auto', padding: '10px 48px', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', border: 'none', color: '#fff' }}
                     onClick={() => setTutorialStep(s => s + 1)}
                   >
                     PRÓXIMO
                   </button>
                 ) : (
                   <button 
-                    style={{ ...S.cfgClose, margin: 0, width: 'auto', padding: '16px 64px', background: 'linear-gradient(135deg,#34d399,#10b981)', border: 'none', color: '#fff', fontSize: 15 }}
+                    style={{ ...S.cfgClose, margin: 0, width: 'auto', padding: '10px 48px', background: 'linear-gradient(135deg,#34d399,#10b981)', border: 'none', color: '#fff', fontSize: 13 }}
                     onClick={() => {
                       setShowTutorial(false);
                       setTutorialSeen(true);
@@ -1407,6 +1890,46 @@ const TypingEngine: React.FC = () => {
                     ENTENDI, VAMOS COMEÇAR!
                   </button>
                 )}
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* ── PROMPT DE MODO TELA CHEIA ──────────────────────────── */}
+      {showFullscreenPrompt && (
+        <div style={{...S.overlay, position: 'fixed', backdropFilter: 'blur(30px)', background: 'rgba(5,3,15,0.95)', zIndex: 3000 }}>
+           <div style={{ 
+             width: '90%', maxWidth: 440, padding: 32, background: 'rgba(15,10,40,0.6)', 
+             border: '1px solid rgba(139,92,246,0.3)', borderRadius: 28, textAlign: 'center',
+             boxShadow: '0 30px 100px rgba(0,0,0,0.8)', animation: 'scaleIn 0.3s ease'
+           }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📺</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 12, letterSpacing: '-0.02em' }}>
+                Modo Tela Cheia
+              </div>
+              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 28 }}>
+                Deseja ativar a Tela Cheia? Isso expande a área de digitação e ajuda a focar nas lições sem distrações.
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button 
+                  style={{ ...S.cfgClose, margin: 0, flex: 1, padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                  onClick={() => {
+                    setShowFullscreenPrompt(false);
+                    sessionStorage.setItem('digit_ae_fullscreen_prompted', 'true');
+                  }}
+                >
+                  AGORA NÃO
+                </button>
+                <button 
+                  style={{ ...S.cfgClose, margin: 0, flex: 1, padding: '12px 20px', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', border: 'none', color: '#fff' }}
+                  onClick={() => {
+                    setShowFullscreenPrompt(false);
+                    sessionStorage.setItem('digit_ae_fullscreen_prompted', 'true');
+                    toggleFullscreen();
+                  }}
+                >
+                  SIM, ATIVAR!
+                </button>
               </div>
            </div>
         </div>
@@ -1551,7 +2074,7 @@ const S = {
     overflowX:'hidden' as const,
   },
   topBar: {
-    width:'100%', maxWidth: 1100,
+    width:'100%', maxWidth: 1400,
     display:'flex', flexDirection:'row' as const,
     alignItems:'center', justifyContent:'space-between', gap:12,
   },
@@ -1575,7 +2098,7 @@ const S = {
     display: 'flex', alignItems: 'center', justifyContent: 'center'
   },
   configPanel: {
-    width:'100%', maxWidth: 1100,
+    width:'100%', maxWidth: 1400,
     background:'rgba(15,10,40,0.97)', border:'1px solid rgba(139,92,246,0.3)',
     borderRadius:18, padding:'22px 26px', boxShadow:'0 8px 40px rgba(0,0,0,0.5)',
   },
@@ -1608,7 +2131,7 @@ const S = {
     fontFamily:"'Outfit',sans-serif", marginTop:16, transition:'all 0.15s',
   },
   licaoBar: {
-    width:'100%', maxWidth: 1100,
+    width:'100%', maxWidth: 1400,
     display:'flex', flexDirection:'row' as const,
     alignItems:'flex-start', gap:0,
   },
@@ -1625,7 +2148,7 @@ const S = {
     boxShadow: active ? '0 0 10px rgba(139,92,246,0.45)' : 'none',
   }),
   licaoHeader: {
-    width:'100%', maxWidth: 1100, textAlign:'center' as const,
+    width:'100%', maxWidth: 1400, textAlign:'center' as const,
   },
   licaoTitulo: {
     fontSize:20, fontWeight:900, color:'#fff',letterSpacing:'-0.02em',
@@ -1634,7 +2157,7 @@ const S = {
     fontSize:12, color:'rgba(255,255,255,0.4)', marginTop:2,
   },
   statsRow: {
-    width:'100%', maxWidth: 1100,
+    width:'100%', maxWidth: 1400,
     display:'flex', flexDirection:'row' as const,
     alignItems:'center', gap:8, flexWrap:'wrap' as const,
   },
@@ -1659,11 +2182,11 @@ const S = {
     padding:'8px 16px', borderRadius:10, border:'1px solid rgba(255,255,255,0.1)',
     background:'rgba(255,255,255,0.04)', color:'rgba(255,255,255,0.5)',
     cursor:'pointer', fontSize:12, fontWeight:700,
-    fontFamily:"'Outfit',sans-serif", ransition:'all 0.15s',
+    fontFamily:"'Outfit',sans-serif", transition:'all 0.15s',
   },
   grade: {
     position:'relative' as const,
-    width:'100%', maxWidth: 1100,
+    width:'100%', maxWidth: 1400,
     borderRadius:18, padding:'20px 28px',
     background:'rgba(255,255,255,0.025)',
     border:'1px solid rgba(255,255,255,0.07)',
@@ -1690,7 +2213,7 @@ const S = {
     background:'rgba(8,8,15,0.9)', backdropFilter:'blur(8px)', borderRadius:18,
   },
   keyboard: {
-    width:'100%', maxWidth: 1100, borderRadius:18,
+    width:'100%', maxWidth: 1400, borderRadius:18,
     background:'rgba(255,255,255,0.02)',
     border:'1px solid rgba(255,255,255,0.07)',
     padding:'14px 10px 12px',

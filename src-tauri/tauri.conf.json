@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://www.google.com; connect-src 'self' http://localhost:8090 http://127.0.0.1:8090 http://localhost:3001 http://127.0.0.1:3001; font-src 'self' https://fonts.gstatic.com; media-src 'self'; frame-src 'self'"
     }
   },
   "bundle": {

@@ -1,11 +1,22 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { APP_CONFIG } from '../config';
+import { pb } from './useUserStore';
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (pb?.authStore?.token) {
+    headers['Authorization'] = `Bearer ${pb.authStore.token}`;
+  }
+  return headers;
+}
 
 const apiStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     try {
-      const resp = await fetch(`${APP_CONFIG.API_URL}/api/store/${name}`);
+      const resp = await fetch(`${APP_CONFIG.API_URL}/api/store/${name}`, {
+        headers: getAuthHeaders()
+      });
       if (!resp.ok) return null;
       const data = await resp.json();
       return data.value || null;
@@ -17,7 +28,7 @@ const apiStorage: StateStorage = {
     try {
       await fetch(`${APP_CONFIG.API_URL}/api/store/${name}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ value })
       });
     } catch (e) {

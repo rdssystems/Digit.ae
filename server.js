@@ -13,11 +13,82 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
 
+// ─── Rate Limiting (simples em memória) ────────────────────────────
+const rateLimitMap = new Map();
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 100;
+
+function rateLimiter(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+
+  if (!rateLimitMap.has(ip)) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return next();
+  }
+
+  const entry = rateLimitMap.get(ip);
+  if (now - entry.start > RATE_WINDOW_MS) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return next();
+  }
+
+  entry.count++;
+  if (entry.count > RATE_MAX) {
+    return res.status(429).json({ error: 'Muitas requisições. Tente novamente em instantes.' });
+  }
+  next();
+}
+
+app.use('/api', rateLimiter);
+
+// ─── Payload limit reduzido ────────────────────────────────────────
+app.use(express.json({ limit: '1mb' }));
+
+// ─── Validação de token PocketBase ─────────────────────────────────
+const tokenCache = new Map();
+const TOKEN_CACHE_TTL = 5 * 60_000;
+
+async function validateToken(token) {
+  if (tokenCache.has(token)) {
+    const cached = tokenCache.get(token);
+    if (Date.now() - cached.ts < TOKEN_CACHE_TTL) {
+      return cached.valid;
+    }
+    tokenCache.delete(token);
+  }
+
+  try {
+    const resp = await fetch('http://127.0.0.1:8090/api/collections/users/auth-refresh', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const valid = resp.ok;
+    tokenCache.set(token, { valid, ts: Date.now() });
+    return valid;
+  } catch {
+    // Se PocketBase não estiver disponível (modo offline), permite a requisição
+    return true;
+  }
+}
+
+async function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token de autenticação ausente.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const isValid = await validateToken(token);
+  if (!isValid) {
+    return res.status(401).json({ error: 'Token inválido ou expirado.' });
+  }
+  next();
+}
+
+// ─── Store JSON ────────────────────────────────────────────────────
 const dbPath = path.resolve(__dirname, 'store.json');
 
-// Helper para ler o arquivo JSON
 function getStore() {
   try {
     if (fs.existsSync(dbPath)) {
@@ -29,7 +100,6 @@ function getStore() {
   return {};
 }
 
-// Helper para escrever no arquivo JSON
 function saveStore(data) {
   try {
     fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
@@ -38,26 +108,22 @@ function saveStore(data) {
   }
 }
 
-// Rota de leitura (Recupera tudo da tabela para carregar no front-end)
-app.get('/api/store/:key', (req, res) => {
+app.get('/api/store/:key', authMiddleware, (req, res) => {
   const store = getStore();
   const value = store[req.params.key] || null;
   res.json({ value });
 });
 
-// Rota de salvamento (Persiste o estado que vem do front-end)
-app.post('/api/store/:key', (req, res) => {
+app.post('/api/store/:key', authMiddleware, (req, res) => {
   const { key } = req.params;
   const { value } = req.body;
   const store = getStore();
-  
   store[key] = value;
   saveStore(store);
-  
   res.json({ success: true, changes: 1 });
 });
 
-// (Produção VPS) Se houver o build do vite na pasta 'dist', serve a aplicação completa
+// ─── Produção (build do Vite) ──────────────────────────────────────
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -68,5 +134,5 @@ if (fs.existsSync(distPath)) {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Backend e Banco de Dados rodando na porta ${PORT}`);
+  console.log(`Backend rodando na porta ${PORT}`);
 });
