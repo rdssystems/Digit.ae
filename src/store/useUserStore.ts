@@ -48,6 +48,8 @@ interface UserStore {
 
   updateProgress: (faseIdx: number, licaoIdx: number, maxUnlocked: number, wpm: number, accuracy: number, lessonKey: string, stars?: number) => Promise<void>;
   updateConfig: (newConfig: Partial<UserConfig>) => Promise<void>;
+  editProfile: (profileId: string, name: string, config: Partial<UserConfig>, password?: string) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
   refreshAuth: () => void;
 }
 
@@ -315,6 +317,66 @@ export const useUserStore = create<UserStore>((set, get) => ({
       set({ selectedProfile: updatedProfile, profiles: updatedProfiles });
     } catch (err) {
       console.error("Erro ao salvar config:", err);
+    }
+  },
+
+  editProfile: async (profileId, name, config, password) => {
+    const user = get().currentUser;
+    if (!user) return;
+
+    try {
+      const data: Record<string, any> = {
+        name,
+        config: { ...DEFAULT_CONFIG, ...config },
+      };
+      if (password !== undefined) {
+        data.password = password ? await hashPassword(password) : "";
+      }
+
+      await pb.collection('profiles').update(profileId, data);
+
+      const updatedProfiles = get().profiles.map(p => {
+        if (p.id === profileId) {
+          return {
+            ...p,
+            name,
+            password: password || undefined,
+            config: { ...p.config, ...config },
+          };
+        }
+        return p;
+      });
+
+      backupProfiles(user.email, updatedProfiles);
+      set({ profiles: updatedProfiles });
+
+      if (get().selectedProfile?.id === profileId) {
+        const updatedSelected = updatedProfiles.find(p => p.id === profileId) || null;
+        set({ selectedProfile: updatedSelected });
+      }
+    } catch (err: any) {
+      console.error("Erro ao editar perfil:", err);
+      alert("Erro ao salvar alterações do perfil.");
+    }
+  },
+
+  deleteProfile: async (profileId) => {
+    const user = get().currentUser;
+    if (!user) return;
+
+    try {
+      await pb.collection('profiles').delete(profileId);
+
+      const updatedProfiles = get().profiles.filter(p => p.id !== profileId);
+      backupProfiles(user.email, updatedProfiles);
+      set({ profiles: updatedProfiles });
+
+      if (get().selectedProfile?.id === profileId) {
+        set({ selectedProfile: null });
+      }
+    } catch (err: any) {
+      console.error("Erro ao excluir perfil:", err);
+      alert("Erro ao excluir perfil no servidor.");
     }
   },
 }));

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore, pb, type Profile } from '../store/useUserStore';
-import { Mail, Lock, User as UserCircle, Plus, ChevronLeft, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, User as UserCircle, Plus, ChevronLeft, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
 import { APP_CONFIG } from '../config';
 
 const S = {
@@ -75,7 +75,7 @@ const S = {
 
 const ProfileSelection: React.FC = () => {
   const { currentUser, login, createProfile, selectProfile, profiles } = useUserStore();
-  const [view, setView] = useState<'list' | 'login' | 'register'>('list');
+  const [view, setView] = useState<'list' | 'login' | 'register' | 'edit'>('list');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [profilePassword, setProfilePassword] = useState(''); // Senha para o novo perfil
@@ -87,11 +87,14 @@ const ProfileSelection: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [isEditingMode, setIsEditingMode] = useState(false);
 
   // Se o usuário já estiver logado na conta PB, mostra a lista, senão mostra login
   useEffect(() => {
-    if (currentUser) setView('list');
-    else {
+    if (currentUser) {
+      setView('list');
+      useUserStore.getState().loadProfiles();
+    } else {
       // No modo offline, tenta auto-login
       if (APP_CONFIG.IS_OFFLINE) {
         handleAutoLogin();
@@ -156,7 +159,15 @@ const ProfileSelection: React.FC = () => {
   };
 
   const handleProfileClick = (p: Profile) => {
-    if (p.password) {
+    if (isEditingMode) {
+      setTargetProfile(p);
+      setName(p.name);
+      setVelocidade(p.config.velocidade || 130);
+      setMinAcerto(p.config.minAcerto || 80);
+      setProfilePassword('');
+      setView('edit');
+      setError('');
+    } else if (p.password) {
       setTargetProfile(p);
       setShowPasswordPrompt(true);
       setVerifyPassword('');
@@ -178,6 +189,43 @@ const ProfileSelection: React.FC = () => {
     }
   };
 
+  const handleEditProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return setError('Nome é obrigatório');
+    setLoading(true);
+    try {
+      const config = { velocidade, minAcerto };
+      const pass = profilePassword.trim() ? profilePassword : undefined;
+      await useUserStore.getState().editProfile(targetProfile.id, name, config, pass);
+      setName('');
+      setProfilePassword('');
+      setIsEditingMode(false);
+      setView('list');
+    } catch (err: any) {
+      setError('Erro ao salvar alterações do perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!window.confirm(`Tem certeza que deseja excluir o perfil de ${targetProfile?.name}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    setLoading(true);
+    try {
+      await useUserStore.getState().deleteProfile(targetProfile.id);
+      setName('');
+      setProfilePassword('');
+      setIsEditingMode(false);
+      setView('list');
+    } catch (err: any) {
+      setError('Erro ao excluir perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={S.page}>
       <div style={{ textAlign: 'center' }}>
@@ -196,30 +244,51 @@ const ProfileSelection: React.FC = () => {
             <div style={S.profileGrid}>
               {profiles.map((p: Profile) => (
                 <div key={p.id} style={S.profileCard} onClick={() => handleProfileClick(p)}>
-                  <div style={S.avatar} className="profile-hero">
-                    {p.password ? <Lock size={40} color="rgba(167,139,250,0.4)" /> : <UserCircle size={48} color="rgba(255,255,255,0.3)" />}
+                  <div style={{
+                    ...S.avatar,
+                    borderColor: isEditingMode ? '#fbbf24' : 'rgba(255,255,255,0.1)',
+                  }} className="profile-hero">
+                    {isEditingMode ? (
+                      <Edit3 size={40} color="#fbbf24" />
+                    ) : p.password ? (
+                      <Lock size={40} color="rgba(167,139,250,0.4)" />
+                    ) : (
+                      <UserCircle size={48} color="rgba(255,255,255,0.3)" />
+                    )}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</div>
-                  {p.password && <div style={{ fontSize: 10, color: 'rgba(167,139,250,0.5)', textTransform: 'uppercase' }}>Protegido</div>}
+                  {p.password && !isEditingMode && <div style={{ fontSize: 10, color: 'rgba(167,139,250,0.5)', textTransform: 'uppercase' }}>Protegido</div>}
+                  {isEditingMode && <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase' }}>Editar</div>}
                 </div>
               ))}
               
-              <div style={S.profileCard} onClick={() => setView('register')}>
-                <div style={{ ...S.avatar, borderStyle: 'dashed', background: 'transparent' }}>
-                  <Plus size={32} color="#a78bfa" />
+              {!isEditingMode && (
+                <div style={S.profileCard} onClick={() => setView('register')}>
+                  <div style={{ ...S.avatar, borderStyle: 'dashed', background: 'transparent' }}>
+                    <Plus size={32} color="#a78bfa" />
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#a78bfa' }}>Novo Perfil</div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#a78bfa' }}>Novo Perfil</div>
-              </div>
+              )}
             </div>
             
-            {!APP_CONFIG.IS_OFFLINE && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 40, flexDirection: 'row', width: '100%' }}>
               <button 
-                onClick={() => useUserStore.getState().logout()} 
-                style={{ ...S.btn, ...S.secondaryBtn, marginTop: 40, border: 'none' }}
+                onClick={() => setIsEditingMode(!isEditingMode)} 
+                style={{ ...S.btn, ...S.secondaryBtn, flex: 1, borderColor: isEditingMode ? '#a78bfa' : 'rgba(255,255,255,0.1)', color: isEditingMode ? '#a78bfa' : 'rgba(255,255,255,0.6)' }}
               >
-                Sair desta Conta
+                {isEditingMode ? 'Concluir Gerenciamento' : 'Gerenciar Perfis'}
               </button>
-            )}
+              
+              {!APP_CONFIG.IS_OFFLINE && !isEditingMode && (
+                <button 
+                  onClick={() => useUserStore.getState().logout()} 
+                  style={{ ...S.btn, ...S.secondaryBtn, flex: 1, border: 'none' }}
+                >
+                  Sair desta Conta
+                </button>
+              )}
+            </div>
           </>
         ) : loading && APP_CONFIG.IS_OFFLINE ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
@@ -264,7 +333,7 @@ const ProfileSelection: React.FC = () => {
               </button>
             </form>
           </>
-        ) : (
+        ) : view === 'register' ? (
           <>
             <button onClick={() => setView('list')} style={{ ...S.btn, ...S.secondaryBtn, width: 'fit-content', padding: 8, marginTop: -20, marginLeft: -20 }}>
               <ChevronLeft size={20} />
@@ -329,6 +398,84 @@ const ProfileSelection: React.FC = () => {
               <button type="submit" disabled={loading} style={S.btn}>
                 {loading ? 'Criando...' : 'Criar Perfil'}
               </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <button onClick={() => { setView('list'); setIsEditingMode(false); }} style={{ ...S.btn, ...S.secondaryBtn, width: 'fit-content', padding: 8, marginTop: -20, marginLeft: -20 }}>
+              <ChevronLeft size={20} />
+            </button>
+
+            <div>
+              <div style={S.title}>Editar Perfil</div>
+              <div style={S.subTitle}>Configure as definições de {targetProfile?.name}.</div>
+            </div>
+
+            {error && <div style={S.error}>{error}</div>}
+
+            <form onSubmit={handleEditProfile} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={S.inputGroup}>
+                <label style={S.label}>Nome do Aluno</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <UserCircle size={18} style={S.inputIcon} />
+                  <input 
+                    type="text" placeholder="Ex: Maria Souza" required 
+                    value={name} onChange={e => setName(e.target.value)}
+                    style={S.input} 
+                  />
+                </div>
+              </div>
+
+              <div style={S.inputGroup}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={S.label}>Meta de Velocidade</label>
+                  <span style={{ fontSize: 13, color: '#a78bfa', fontWeight: 900 }}>{velocidade} TPM</span>
+                </div>
+                <input 
+                  type="range" min="30" max="600" step="5"
+                  value={velocidade} onChange={e => setVelocidade(parseInt(e.target.value))}
+                  style={{ ...S.input, padding: 0, height: 4, background: 'rgba(255,255,255,0.1)' }} 
+                />
+              </div>
+
+              <div style={S.inputGroup}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={S.label}>Precisão Mínima</label>
+                  <span style={{ fontSize: 13, color: '#34d399', fontWeight: 900 }}>{minAcerto}%</span>
+                </div>
+                <input 
+                  type="range" min="50" max="100" step="1"
+                  value={minAcerto} onChange={e => setMinAcerto(parseInt(e.target.value))}
+                  style={{ ...S.input, padding: 0, height: 4, background: 'rgba(255,255,255,0.1)' }} 
+                />
+              </div>
+
+              <div style={S.inputGroup}>
+                <label style={S.label}>Senha do Perfil (deixe em branco para não alterar)</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <ShieldCheck size={18} style={S.inputIcon} />
+                  <input 
+                    type="password" placeholder="Nova senha (opcional)"
+                    value={profilePassword} onChange={e => setProfilePassword(e.target.value)}
+                    style={S.input} 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <button type="submit" disabled={loading} style={S.btn}>
+                  {loading ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+
+                <button 
+                  type="button" 
+                  disabled={loading} 
+                  style={{ ...S.btn, background: 'linear-gradient(135deg,#ef4444,#dc2626)', boxShadow: '0 4px 15px rgba(239,68,68,0.3)' }}
+                  onClick={handleDeleteProfile}
+                >
+                  {loading ? 'Excluindo...' : 'Excluir Perfil'}
+                </button>
+              </div>
             </form>
           </>
         )}
