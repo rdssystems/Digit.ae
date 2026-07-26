@@ -289,6 +289,15 @@ const ProfileSelection: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {currentUser && (currentUser.email === 'klismanrds@gmail.com' || currentUser.isAdmin) && !isEditingMode && (
+              <button 
+                onClick={() => useUserStore.getState().setShowAdminDashboard(true)} 
+                style={{ ...S.btn, background: 'linear-gradient(135deg, #7c3aed, #4c1d95)', marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                <ShieldCheck size={18} /> Painel de Administração
+              </button>
+            )}
           </>
         ) : loading && APP_CONFIG.IS_OFFLINE ? (
           <div style={{ textAlign: 'center', padding: 40 }}>

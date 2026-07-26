@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import PocketBase from 'pocketbase';
 import { hashPassword } from '../utils/crypto';
+import { DEFAULT_FASES, type Fase, type Licao } from '../data/defaultFases';
+export type { Fase, Licao };
 
 import { APP_CONFIG } from '../config';
 export const pb = new PocketBase(APP_CONFIG.PB_URL);
@@ -34,7 +36,12 @@ interface UserStore {
   currentUser: any | null;
   selectedProfile: Profile | null;
   profiles: Profile[];
+  fases: Fase[];
+  isLoadingFases: boolean;
+  showAdminDashboard: boolean;
   isValid: boolean;
+
+  setShowAdminDashboard: (show: boolean) => void;
 
   login: (email: string, pass: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -45,6 +52,14 @@ interface UserStore {
   createProfile: (name: string, velocidade: number, minAcerto: number, password?: string) => Promise<void>;
   verifyProfilePassword: (profileId: string, password: string) => Promise<boolean>;
   loadProfiles: () => Promise<void>;
+
+  loadFases: () => Promise<void>;
+  createPhase: (titulo: string, descricao: string) => Promise<void>;
+  updatePhase: (phaseId: string, titulo: string, descricao: string) => Promise<void>;
+  deletePhase: (phaseId: string) => Promise<void>;
+  createLesson: (phaseId: string, lessonData: { titulo: string; subtitulo: string; linhas: string[]; teclasFoco: string[]; isScrolling?: boolean }) => Promise<void>;
+  updateLesson: (lessonId: string, lessonData: { titulo?: string; subtitulo?: string; linhas?: string[]; teclasFoco?: string[]; isScrolling?: boolean }) => Promise<void>;
+  deleteLesson: (lessonId: string) => Promise<void>;
 
   updateProgress: (faseIdx: number, licaoIdx: number, maxUnlocked: number, wpm: number, accuracy: number, lessonKey: string, stars?: number) => Promise<void>;
   updateConfig: (newConfig: Partial<UserConfig>) => Promise<void>;
@@ -80,7 +95,12 @@ export const useUserStore = create<UserStore>((set, get) => ({
   currentUser: pb.authStore.model,
   selectedProfile: null,
   profiles: [],
+  fases: DEFAULT_FASES,
+  isLoadingFases: false,
+  showAdminDashboard: false,
   isValid: pb.authStore.isValid,
+
+  setShowAdminDashboard: (showAdminDashboard) => set({ showAdminDashboard }),
 
   refreshAuth: () => {
     const model = pb.authStore.model;
@@ -377,6 +397,167 @@ export const useUserStore = create<UserStore>((set, get) => ({
     } catch (err: any) {
       console.error("Erro ao excluir perfil:", err);
       alert("Erro ao excluir perfil no servidor.");
+    }
+  },
+
+  loadFases: async () => {
+    set({ isLoadingFases: true });
+    try {
+      const phaseRecords = await pb.collection('phases').getFullList({ sort: 'ordem,created' });
+      const lessonRecords = await pb.collection('lessons').getFullList({ sort: 'ordem,created' });
+
+      if (phaseRecords.length === 0) {
+        // Auto-seed inicial se o banco estiver vazio
+        const createdFases: Fase[] = [];
+        for (let i = 0; i < DEFAULT_FASES.length; i++) {
+          const df = DEFAULT_FASES[i];
+          const pRecord = await pb.collection('phases').create({
+            titulo: df.titulo,
+            descricao: df.descricao,
+            ordem: i + 1,
+          });
+
+          const licoes: Licao[] = [];
+          for (let j = 0; j < df.licoes.length; j++) {
+            const dl = df.licoes[j];
+            const lRecord = await pb.collection('lessons').create({
+              phase: pRecord.id,
+              key: dl.key,
+              titulo: dl.titulo,
+              subtitulo: dl.subtitulo,
+              linhas: dl.linhas,
+              teclasFoco: dl.teclasFoco,
+              isScrolling: !!dl.isScrolling,
+              ordem: j + 1,
+            });
+            licoes.push({
+              id: j + 1,
+              dbId: lRecord.id,
+              key: dl.key,
+              titulo: lRecord.titulo,
+              subtitulo: lRecord.subtitulo,
+              linhas: Array.isArray(lRecord.linhas) ? lRecord.linhas : [],
+              teclasFoco: Array.isArray(lRecord.teclasFoco) ? lRecord.teclasFoco : [],
+              isScrolling: lRecord.isScrolling,
+              ordem: lRecord.ordem,
+            });
+          }
+
+          createdFases.push({
+            id: pRecord.id,
+            titulo: pRecord.titulo,
+            descricao: pRecord.descricao,
+            ordem: pRecord.ordem,
+            licoes,
+          });
+        }
+        set({ fases: createdFases, isLoadingFases: false });
+        return;
+      }
+
+      // Mapeia registros vindos do banco
+      const fases: Fase[] = phaseRecords.map((pr: any, pIdx: number) => {
+        const pLessons = lessonRecords.filter((lr: any) => lr.phase === pr.id);
+        const licoes: Licao[] = pLessons.map((lr: any, lIdx: number) => ({
+          id: lIdx + 1,
+          dbId: lr.id,
+          key: lr.key || `m${pIdx + 1}-l${lIdx + 1}`,
+          titulo: lr.titulo,
+          subtitulo: lr.subtitulo || '',
+          linhas: Array.isArray(lr.linhas) ? lr.linhas : (typeof lr.linhas === 'string' ? JSON.parse(lr.linhas) : []),
+          teclasFoco: Array.isArray(lr.teclasFoco) ? lr.teclasFoco : (typeof lr.teclasFoco === 'string' ? JSON.parse(lr.teclasFoco) : []),
+          isScrolling: !!lr.isScrolling,
+          ordem: lr.ordem || lIdx + 1,
+        }));
+
+        return {
+          id: pr.id,
+          titulo: pr.titulo,
+          descricao: pr.descricao || '',
+          ordem: pr.ordem || pIdx + 1,
+          licoes,
+        };
+      });
+
+      set({ fases, isLoadingFases: false });
+    } catch (err) {
+      console.error("Erro ao carregar fases do banco:", err);
+      set({ fases: DEFAULT_FASES, isLoadingFases: false });
+    }
+  },
+
+  createPhase: async (titulo, descricao) => {
+    try {
+      const currentFases = get().fases;
+      await pb.collection('phases').create({
+        titulo,
+        descricao,
+        ordem: currentFases.length + 1,
+      });
+      await get().loadFases();
+    } catch (err: any) {
+      console.error("Erro ao criar fase:", err);
+      alert("Erro ao criar módulo no servidor.");
+    }
+  },
+
+  updatePhase: async (phaseId, titulo, descricao) => {
+    try {
+      await pb.collection('phases').update(phaseId, { titulo, descricao });
+      await get().loadFases();
+    } catch (err: any) {
+      console.error("Erro ao editar fase:", err);
+      alert("Erro ao editar módulo no servidor.");
+    }
+  },
+
+  deletePhase: async (phaseId) => {
+    try {
+      await pb.collection('phases').delete(phaseId);
+      await get().loadFases();
+    } catch (err: any) {
+      console.error("Erro ao excluir fase:", err);
+      alert("Erro ao excluir módulo no servidor.");
+    }
+  },
+
+  createLesson: async (phaseId, lessonData) => {
+    try {
+      const targetPhase = get().fases.find(f => f.id === phaseId);
+      const lessonCount = targetPhase ? targetPhase.licoes.length : 0;
+      await pb.collection('lessons').create({
+        phase: phaseId,
+        titulo: lessonData.titulo,
+        subtitulo: lessonData.subtitulo,
+        linhas: lessonData.linhas,
+        teclasFoco: lessonData.teclasFoco,
+        isScrolling: !!lessonData.isScrolling,
+        ordem: lessonCount + 1,
+      });
+      await get().loadFases();
+    } catch (err: any) {
+      console.error("Erro ao criar lição:", err);
+      alert("Erro ao criar lição no servidor.");
+    }
+  },
+
+  updateLesson: async (lessonId, lessonData) => {
+    try {
+      await pb.collection('lessons').update(lessonId, lessonData);
+      await get().loadFases();
+    } catch (err: any) {
+      console.error("Erro ao atualizar lição:", err);
+      alert("Erro ao atualizar lição no servidor.");
+    }
+  },
+
+  deleteLesson: async (lessonId) => {
+    try {
+      await pb.collection('lessons').delete(lessonId);
+      await get().loadFases();
+    } catch (err: any) {
+      console.error("Erro ao excluir lição:", err);
+      alert("Erro ao excluir lição no servidor.");
     }
   },
 }));
