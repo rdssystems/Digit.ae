@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore, pb, type Profile } from '../store/useUserStore';
-import { Mail, Lock, User as UserCircle, Plus, ChevronLeft, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
+import { Mail, Lock, User as UserCircle, Plus, ChevronLeft, ShieldCheck, Edit3 } from 'lucide-react';
 import { APP_CONFIG } from '../config';
 
 const S = {
